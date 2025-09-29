@@ -1,5 +1,24 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Taviraj, Spectral, Libre_Baskerville } from "next/font/google";
+
+export const taviraj = Taviraj({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-taviraj",
+});
+
+export const spectral = Spectral({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-spectral",
+});
+
+export const libreBaskerville = Libre_Baskerville({
+  subsets: ["latin"],
+  weight: ["400", "700"], // 700 is bold
+  variable: "--font-libre-baskerville",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

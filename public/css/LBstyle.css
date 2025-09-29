@@ -1,0 +1,446 @@
+/* updated 4/4/24 */
+
+body {
+    width: auto !important;
+    margin: 0 !important;
+    padding: 1rem !important;
+    max-width: none !important;
+}
+h2 {
+    color: #000;
+}
+
+h3 {
+    color: #46597D;
+}
+
+
+.item,
+.note,
+.argument {
+    width: auto !important;
+    max-width: 100% !important;
+}
+
+.banner {
+    width: 100%;
+    height: 10rem;
+}
+nav {
+    width: 100%;
+    clear: both;
+}
+ul#navBar {
+    list-style-type: none;
+    margin-top: -1rem;
+    padding: 0;
+    overflow: hidden;
+    background-color: #3f6345;
+    z-index: 3;
+}
+
+ul#navBar li {
+    float: left;
+}
+
+ul#navBar li a {
+    font-family: "Cormorant+Garmond";
+    font-size: 20px;
+    line-height: 26px;
+    letter-spacing: 0.4px;
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+ul#navBar li a:hover {
+    background-color: #06330e;
+}
+.active {
+    background-color: #06330e;
+}
+img.logo {
+    height: 36px;
+    width: 36px;
+    position: absolute;
+    top: 10.2rem;
+    float: right;
+    margin-left: -4rem;
+}
+a {
+    font-weight: bold;
+    text-decoration: none;
+    color: #577da8;
+}
+a:link {
+}
+a:visited {
+}
+a:active {
+}
+a:hover {
+    text-decoration: underline;
+    color: olive;
+}
+.addHand {
+    font-family: "Lucida Calligraphy", cursive, sans-serif;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.addHand  sup {
+    font-family: verdana, arial, helvetica, sans-serif;
+    color: #37691f;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.del {
+    text-decoration: line-through;
+    color: red;
+}
+.belowline {
+    display: inline;
+    padding-left: 2px;
+    vertical-align: -0.3rem;
+}
+.aboveline {
+    display: inline;
+    padding-left: 2px;
+    vertical-align: 0.3rem;
+}
+.bottom {
+    display: block;
+    font-family: "Lucida Calligraphy", cursive, sans-serif;
+    font-size: .8rem;
+    line-height: 1.2rem;
+    padding: 1em;
+}
+.top {
+    display: block;
+    font-family: "Lucida Calligraphy", cursive, sans-serif;
+    font-size: .8rem;
+    line-height: 1.2rem;
+    padding: 1em;
+}
+header {
+    color: #000;
+    font-size: 1.5rem;
+    margin: 1.2rem 0 1.2rem 0;
+    font-weight: normal;
+}
+h1 {
+    color: #000;
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+h2 {
+    color: #000;
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1.5em;
+    margin: 1.2rem 0 1.2rem 0;
+    font-weight: bold;
+}
+h3 {
+    color: #46597D;
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1.4rem;
+    font-weight: bold;
+}
+h4 {
+    color: #000;
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+h5 {
+    color: #000;
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1.0rem;
+    font-weight: bold;
+}
+h6 {
+    color: #000;
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+/* first attempt at marginal comments */
+div.wrapperCorr {
+    margin-left: 7rem;
+    position: relative;
+    font-size: .9rem;
+    line-height: 2rem;
+}
+.itemAL {
+display: block;
+position: relative;
+float: left;
+clear: left;
+margin-left: -7rem;
+font-style: normal;
+font-size: 1.0rem;
+}
+.itemAR {
+    display: block;
+    position: relative;
+    float: right;
+    margin-right: -12rem;
+    width: 7rem;
+}
+header > .itemAR {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1rem;
+    line-height: 1.8rem;
+    display: block;
+    position: relative;
+    float: right;
+    margin-right: -4rem;
+    width: 7rem;
+}
+.footnote > .itemAR {
+    margin-right: -5rem;
+}
+.ltext.right {
+    display: table-cell;
+    padding-right: 1rem;
+}
+.right > .itemAR {
+     margin-right: -7rem;
+}
+/* title page */
+.front {
+    width: 30rem;
+}
+.tp {
+    text-align: center;
+}
+.tpPubInfo {
+    text-align: center;
+}
+
+p,
+tr,
+td {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1rem;
+    line-height: 1.8rem;
+}
+/* "verse" is the default attribute given to tei:lg when there is no type. */
+p.stanza, p.verseparagraph, p.sp, p.poetry, p.cont, p.verse, .speech {
+    display: table;
+    width: 30rem;
+}
+span.l {
+    display: table-row;
+}
+span.ltext {
+    display: table-cell;
+    width: 90%;
+}
+span.lno {
+    display: table-cell;
+    width: 10%;
+    padding-left: 5px;
+}
+.stzNbr {
+    font-weight: bold;
+    float: left;
+    margin-left: -2rem;
+}
+ol {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1.0em;
+    line-height: 1.8em;
+}
+ul {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1.0em;
+    line-height: 1.8em;
+}
+li {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1.0em;
+    line-height: 1.8em;
+    display: list-item;
+}
+.sup {
+    position: relative;
+    top: -10px;
+    font-size: .8em;
+    line-height: 1.8em;
+}
+.small,
+.smcps {
+    font-variant: small-caps;
+}
+.eightPoint {
+    font-size: 75%;
+    line-height: 75%;
+}
+.runHead {
+    font-variant: small-caps;
+}
+.blockquote {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 0.8em;
+    line-height: 1.6em;
+    margin-left: 5em;
+    margin-right: 5em;
+    letter-spacing: 0.3px;
+}
+blockquote {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 0.8rem;
+    line-height: 1.6rem;
+    margin-left: 5rem;
+    margin-right: 5rem;
+    letter-spacing: 0.3px;
+}
+.pageTopCenter {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1rem;
+    display: block;
+    max-width: 30rem;
+    text-align: center;
+}
+.newPage {
+    display: block;
+    text-align: center;
+    max-width: 30rem;
+    margin: 1rem 0 1rem 0;
+    border-top: 2px solid black;
+}
+.pgImg {
+    float: right;
+}
+.indent {
+    padding-left: 3rem;
+}
+.indent1 {
+    padding-left: 6rem;
+}
+.indent2 {
+    padding-left: 9rem;
+}
+.indent3 {
+    padding-left: 12rem;
+}
+.toc {
+    font-size: 1.0rem;
+    line-height: 1.8rem;
+    margin: 1.2rem 0rem 1.2rem 2rem;
+}
+.hang {
+    font-size: .9rem;
+    line-height: 1.5rem;
+    margin-left: 30px;
+    text-indent: -30px;
+}
+.bold {
+    font-weight: bold;
+}
+.smcaps {
+    font-variant: small-caps;
+}
+.titlem {
+    font-style: italic;
+}
+.titlej {
+    font-style: italic;
+}
+figcaption {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1.0rem;
+    line-height: 1.8rem;
+    padding: 1em;
+}
+.notes {
+    border-top: 2px solid black;
+    padding-top: 1rem;
+    font-size: .9rem;
+    line-height: 1.5rem;
+}
+.philaNote {
+    width: 38rem;
+}
+.note {
+    display: block;
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1rem;
+    line-height: 1.8rem;
+    width: 32rem;
+    
+}
+.noteSpace {
+    height: 60rem;
+    display: block;
+}
+.footnote {
+    display: block;
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: .8rem;
+    line-height: 1.2rem;
+    padding: 1em;
+}
+.headnote {
+    display: block;
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 10pt;
+    font-style: italic;
+    line-height: 18pt;
+    padding: 1em;
+}
+
+.argument {
+    display: block;
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 1rem;
+    line-height: 1.8rem;
+    width: 30rem;
+}
+
+/* special */
+
+#popupChg {
+    cursor: pointer;
+    margin-left: -3rem;
+    float: left;
+    transition: opacity 0.2s;
+}
+#popupChg:hover {
+    opacity: 0.7;
+}
+.popupIcon {
+    height: 20px;
+    width: 20px;
+    float: left;
+    margin-left: -2rem;
+}
+
+div.inscription > p.signature {
+  font-family: "Edu NSW ACT Cursive", cursive;
+  font-weight: 500;
+  font-style: normal;
+}
+
+div.inscription > p.signature > sup {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.trailer {
+    font-family: verdana, arial, helvetica, sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+}
+.right {
+    text-align: right;
+}
+p.errList {
+    
+}
