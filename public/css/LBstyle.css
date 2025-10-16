@@ -211,16 +211,6 @@ header > .itemAR {
 .right > .itemAR {
      margin-right: -7rem;
 }
-/* title page */
-.front {
-    width: 30rem;
-}
-.tp {
-    text-align: center;
-}
-.tpPubInfo {
-    text-align: center;
-}
 
 p,
 tr,
