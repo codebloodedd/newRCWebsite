@@ -14,7 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import pageMap from "@/data/page-mapping.json";
 
-/* ---------- Roman ↔ Arabic conversion + dynamic mapping builder ---------- */
+/* ───────── Roman ↔ Arabic conversion + dynamic mapping ───────── */
 function toRoman(num) {
   if (!num || num <= 0) return "";
   const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
@@ -34,34 +34,19 @@ function toRoman(num) {
     "I",
   ];
   let res = "";
-  for (let i = 0; i < vals.length; i++)
+  for (let i = 0; i < vals.length; i++) {
     while (num >= vals[i]) {
       num -= vals[i];
       res += syms[i];
     }
+  }
   return res.toLowerCase();
 }
-
-function fromRoman(str) {
-  if (!str) return NaN;
-  const map = { i: 1, v: 5, x: 10, l: 50, c: 100, d: 500, m: 1000 };
-  let total = 0,
-    prev = 0;
-  str = str.toLowerCase();
-  for (let i = str.length - 1; i >= 0; i--) {
-    const val = map[str[i]];
-    if (!val) continue;
-    total += val < prev ? -val : val;
-    prev = val;
-  }
-  return total;
-}
-
 const extractInternal = (path) => path.match(/(\d{4})\.jpg$/)?.[1];
 
-function buildDynamicMap(pageMap) {
+function buildDynamicMap(pm) {
   const map = {};
-  const entries = Object.entries(pageMap).sort((a, b) => {
+  const entries = Object.entries(pm).sort((a, b) => {
     const aNum = parseInt(a[1].match(/(\d+)\.jpg$/)?.[1] || "0");
     const bNum = parseInt(b[1].match(/(\d+)\.jpg$/)?.[1] || "0");
     return aNum - bNum;
@@ -87,10 +72,10 @@ const arabicDisplayCount = orderedInternalIds.length - romanDisplayCount;
 function getDisplayFromInternal(id) {
   return internalDisplayMap[id]?.display || id;
 }
-
 function getInternalFromDisplay(display) {
   const isRomanLiteral = /^[ivxlcdm]+$/i.test(display);
   const isArabicNumber = /^\d+$/.test(display);
+
   if (isRomanLiteral) {
     const key = display.toLowerCase();
     for (const id of orderedInternalIds) {
@@ -101,16 +86,19 @@ function getInternalFromDisplay(display) {
         return id;
     }
   }
+
   if (isArabicNumber) {
-    const n = parseInt(display);
-    if (isNaN(n) || n <= 0) return null;
+    const n = parseInt(display, 10);
+    if (!n || n <= 0) return orderedInternalIds[0];
+    // Arabic display id
     for (const id of orderedInternalIds) {
       if (
         internalDisplayMap[id].type === "arabic" &&
-        parseInt(internalDisplayMap[id].display) === n
+        parseInt(internalDisplayMap[id].display, 10) === n
       )
         return id;
     }
+    // Roman ordinal
     if (n <= romanDisplayCount) {
       let count = 0;
       for (const id of orderedInternalIds) {
@@ -124,7 +112,7 @@ function getInternalFromDisplay(display) {
   return orderedInternalIds[0];
 }
 
-/* ---------------------------- Reader Component ---------------------------- */
+/* ───────── Reader Component ───────── */
 export default function Reader() {
   const [divider, setDivider] = useState(60);
   const [currentPage, setCurrentPage] = useState("0005");
@@ -135,11 +123,12 @@ export default function Reader() {
   const [viewMode, setViewMode] = useState("transcript");
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const viewerRef = useRef(null);
   const [viewer, setViewer] = useState(null);
   const transcriptRef = useRef(null);
 
-  /* Load transcript HTML */
+  /* Load transcript (strip pgImg) */
   useEffect(() => {
     fetch("/data/LB00-1_facs.html")
       .then((r) => r.text())
@@ -151,7 +140,7 @@ export default function Reader() {
       });
   }, []);
 
-  /* Detect screen size */
+  /* Responsive */
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1024);
     check();
@@ -159,10 +148,10 @@ export default function Reader() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  /* 🖼️ Initialize OpenSeadragon viewer */
+  /* OpenSeadragon: desktop always, mobile only when in image view */
   useEffect(() => {
-    const shouldShowViewer = !isMobile || viewMode === "image";
-    if (!shouldShowViewer) return;
+    const shouldInit = !isMobile || (isMobile && viewMode === "image");
+    if (!shouldInit) return;
 
     const currentDisplayKey = getDisplayFromInternal(currentPage);
     const imagePath = pageMap[currentDisplayKey]
@@ -175,7 +164,6 @@ export default function Reader() {
       } catch {}
       setViewer(null);
     }
-
     if (!imagePath || !viewerRef.current) return;
 
     const v = OpenSeadragon({
@@ -186,17 +174,18 @@ export default function Reader() {
       showNavigationControl: !isMobile,
       showZoomControl: !isMobile,
       showHomeControl: !isMobile,
+      showFullPageControl: false,
     });
-
     setViewer(v);
+
     return () => {
       try {
         v.destroy();
       } catch {}
     };
-  }, [currentPage, viewMode, isMobile]);
+  }, [currentPage, isMobile, viewMode]);
 
-  /* Sync scroll to page */
+  /* When switching back to transcript, scroll to current page */
   useEffect(() => {
     if (viewMode === "transcript" && transcriptRef.current) {
       const el = document.getElementById(currentPage);
@@ -204,7 +193,7 @@ export default function Reader() {
     }
   }, [viewMode, currentPage]);
 
-  /* Scroll listener */
+  /* Transcript scroll → update currentPage */
   const handleScroll = (e) => {
     const els = e.target.querySelectorAll(".newPage");
     for (let el of els) {
@@ -217,7 +206,7 @@ export default function Reader() {
     }
   };
 
-  /* Page navigation */
+  /* Navigation helpers */
   const goToPage = (display) => {
     const id = getInternalFromDisplay(display);
     const el = document.getElementById(id);
@@ -234,7 +223,7 @@ export default function Reader() {
       goToPage(getDisplayFromInternal(orderedInternalIds[idx + 1]));
   };
 
-  /* Page info state */
+  /* Current display info */
   const current = internalDisplayMap[currentPage];
   const currType = current?.type;
   const currDisplay = current?.display || "—";
@@ -250,6 +239,8 @@ export default function Reader() {
     }
     return null;
   })();
+
+  /* Desktop selector inputs */
   const [romanInput, setRomanInput] = useState("");
   const [arabicInput, setArabicInput] = useState("");
   useEffect(() => {
@@ -286,18 +277,35 @@ export default function Reader() {
   const toggleViewMode = () =>
     setViewMode((v) => (v === "transcript" ? "image" : "transcript"));
 
-  /* ---------------------------- JSX RENDER ---------------------------- */
+  const handleRomanSelectorSubmit = (e) => {
+    e.preventDefault();
+    if (!romanInput) return;
+    const ordinal = parseInt(romanInput, 10);
+    if (ordinal > 0 && ordinal <= romanDisplayCount) goToPage(toRoman(ordinal));
+    else setRomanInput("");
+  };
+  const handleArabicSelectorSubmit = (e) => {
+    e.preventDefault();
+    if (!arabicInput) return;
+    const n = parseInt(arabicInput, 10);
+    if (n > 0) goToPage(String(n));
+    else setArabicInput("");
+  };
+
+  /* ───────── Render ───────── */
   return (
     <div className="h-screen flex flex-col bg-[#FAF7F0] text-[#4A4947] overflow-hidden">
       <style>{`
-        body,html,#__next{margin:0;padding:0;height:100%;overflow:hidden;
-        background:#FAF7F0;color:#4A4947;font-family:'Spectral',serif;}
+        body,html,#__next{
+          margin:0;padding:0;height:100%;overflow:hidden;
+          background:#FAF7F0;color:#4A4947;font-family:'Spectral',serif;
+        }
       `}</style>
 
-      {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-50 bg-[#B17457] text-[#FAF7F0] shadow-sm border-b border-[#D8D2C2]">
-        <div className="flex items-center justify-between px-6 py-3 flex-wrap">
-          {/* Title + Info */}
+      {/* Fixed Top Nav (always glued, no shift) */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[#B17457] text-[#FAF7F0] shadow-sm border-b border-[#D8D2C2]">
+        <div className="flex items-center justify-between px-6 py-3">
+          {/* LEFT: title + info */}
           <div className="flex items-center gap-2 relative">
             <h1
               className="text-lg font-bold"
@@ -329,50 +337,52 @@ export default function Reader() {
             </div>
           </div>
 
-          {/* Center controls - desktop only */}
+          {/* CENTER: Desktop page navigation (dual selectors + prev/next) */}
           <div className="hidden lg:flex items-center gap-3">
             <button onClick={goPrev} className="p-1 text-[#FAF7F0]">
               <ChevronLeftIcon className="h-5 w-5" />
             </button>
 
+            {/* Roman selector (display shows roman, input uses arabic ordinal) */}
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (romanInput) goToPage(toRoman(parseInt(romanInput, 10)));
-              }}
+              onSubmit={handleRomanSelectorSubmit}
               className="flex items-center gap-2 bg-[#FAF7F0] text-[#4A4947] px-3 py-1 rounded shadow-sm border border-[#D8D2C2]"
             >
-              <div className="text-xs text-[#4A4947]">Roman</div>
+              <div className="text-xs">Roman</div>
               <input
                 type="text"
-                className="w-10 text-center bg-transparent border-none focus:outline-none text-sm"
+                className="w-12 text-center bg-transparent border-none focus:outline-none text-sm"
                 placeholder={`1-${romanDisplayCount}`}
                 value={romanInput}
                 onChange={(e) =>
                   setRomanInput(e.target.value.replace(/[^\d]/g, ""))
                 }
+                title={`Enter roman page ordinal as Arabic number (e.g. 11 for ${toRoman(
+                  11
+                )}).`}
+                disabled={romanDisplayCount === 0}
               />
               <div className="text-sm">
                 {currType === "roman" ? currDisplay : "—"}
               </div>
             </form>
 
+            {/* Arabic selector */}
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (arabicInput) goToPage(arabicInput);
-              }}
+              onSubmit={handleArabicSelectorSubmit}
               className="flex items-center gap-2 bg-[#FAF7F0] text-[#4A4947] px-3 py-1 rounded shadow-sm border border-[#D8D2C2]"
             >
-              <div className="text-xs text-[#4A4947]">Arabic</div>
+              <div className="text-xs">Arabic</div>
               <input
                 type="text"
-                className="w-10 text-center bg-transparent border-none focus:outline-none text-sm"
+                className="w-12 text-center bg-transparent border-none focus:outline-none text-sm"
                 placeholder={`1-${arabicDisplayCount}`}
                 value={arabicInput}
                 onChange={(e) =>
                   setArabicInput(e.target.value.replace(/[^\d]/g, ""))
                 }
+                title="Enter Arabic page number (e.g. 10)."
+                disabled={arabicDisplayCount === 0}
               />
               <div className="text-sm">
                 {currType === "arabic" ? currDisplay : "—"}
@@ -384,26 +394,34 @@ export default function Reader() {
             </button>
           </div>
 
-          {/* Right controls */}
+          {/* RIGHT: version + desktop controls + mobile menu */}
           <div className="flex items-center gap-3">
+            {/* version dropdown preserved */}
+            <select className="bg-transparent text-[#FAF7F0] font-medium focus:outline-none cursor-pointer hidden sm:block">
+              <option>Version 1</option>
+              <option>Version 2</option>
+            </select>
+
+            {/* Desktop controls */}
             <div className="hidden lg:flex items-center gap-3">
               <button onClick={handleBookmark} title="Bookmark page">
-                <BookmarkIcon className="h-5 w-5 text-[#FAF7F0]" />
+                <BookmarkIcon className="h-5 w-5" />
               </button>
               <button onClick={toggleFullscreen} title="Toggle fullscreen">
                 {fullscreen ? (
-                  <ArrowsPointingInIcon className="h-5 w-5 text-[#FAF7F0]" />
+                  <ArrowsPointingInIcon className="h-5 w-5" />
                 ) : (
-                  <ArrowsPointingOutIcon className="h-5 w-5 text-[#FAF7F0]" />
+                  <ArrowsPointingOutIcon className="h-5 w-5" />
                 )}
               </button>
             </div>
 
-            {/* Mobile menu toggle */}
+            {/* Mobile menu w/ smooth icon swap */}
             <div className="lg:hidden relative">
               <button
                 onClick={() => setMobileMenuOpen((s) => !s)}
                 className="p-1 transition-transform duration-300"
+                aria-label="More options"
               >
                 {mobileMenuOpen ? (
                   <XMarkIcon className="h-6 w-6 text-[#FAF7F0] transform rotate-180 transition-transform duration-300" />
@@ -414,6 +432,7 @@ export default function Reader() {
 
               {mobileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-60 bg-[#FAF7F0] text-[#4A4947] border border-[#D8D2C2] rounded shadow-lg p-3 z-50">
+                  {/* Mobile unified page selector */}
                   <div className="mb-2">
                     <div className="text-sm font-medium">Go to page</div>
                     <div className="text-xs text-[#4A4947]/80 mb-1">
@@ -424,7 +443,7 @@ export default function Reader() {
                         ? `Arabic ${currDisplay}`
                         : "—"}
                     </div>
-                    <div className="flex flex-nowrap w-full gap-2">
+                    <div className="flex items-center w-full gap-2">
                       <input
                         type="text"
                         value={arabicInput || romanInput}
@@ -433,24 +452,27 @@ export default function Reader() {
                           setArabicInput(v);
                           setRomanInput(v);
                         }}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" &&
-                          goToPage(arabicInput || romanInput)
-                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            goToPage(arabicInput || romanInput);
+                            setMobileMenuOpen(false);
+                          }
+                        }}
                         placeholder="Page"
-                        className="flex-1 px-2 py-1 border rounded text-sm"
+                        className="flex-1 min-w-0 px-2 py-1 border rounded text-sm"
                       />
                       <button
                         onClick={() => {
                           goToPage(arabicInput || romanInput);
                           setMobileMenuOpen(false);
                         }}
-                        className="px-3 py-1 rounded bg-[#B17457] text-[#FAF7F0] text-sm whitespace-nowrap"
+                        className="px-3 py-1 rounded bg-[#B17457] text-[#FAF7F0] text-sm"
                       >
                         Go
                       </button>
                     </div>
                   </div>
+
                   <button
                     className="w-full text-left px-2 py-1 hover:bg-[#D8D2C2] rounded mb-1"
                     onClick={() => {
@@ -476,14 +498,17 @@ export default function Reader() {
         </div>
       </div>
 
-      {/* Main Viewer Section */}
+      {/* spacer so fixed header doesn’t overlap content */}
+      <div className="h-[56px] shrink-0" />
+
+      {/* Main viewer (no page vertical scroll; panes scroll internally) */}
       <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
         {isMobile ? (
           <>
             {viewMode === "transcript" && (
               <div
                 ref={transcriptRef}
-                className="overflow-y-scroll overflow-x-hidden p-6 border-t border-[#D8D2C2] bg-[#FAF7F0] flex-1 max-w-full"
+                className="overflow-y-auto overflow-x-hidden p-6 border-t border-[#D8D2C2] bg-[#FAF7F0] flex-1 max-w-full"
                 onScroll={handleScroll}
               >
                 <link rel="stylesheet" href="/css/LBstyle.css" />
@@ -512,6 +537,7 @@ export default function Reader() {
               </div>
             )}
 
+            {/* Circular FAB */}
             <button
               onClick={toggleViewMode}
               className="lg:hidden fixed bottom-6 right-6 z-40 bg-[#B17457] text-[#FAF7F0] w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
@@ -526,10 +552,11 @@ export default function Reader() {
             </button>
           </>
         ) : (
+          /* Desktop split */
           <div className="flex flex-1 overflow-hidden">
             <div
               ref={transcriptRef}
-              className="overflow-y-scroll overflow-x-hidden p-6 border-r border-[#D8D2C2] bg-[#FAF7F0]"
+              className="overflow-y-auto overflow-x-hidden p-6 border-right border-r border-[#D8D2C2] bg-[#FAF7F0]"
               style={{ width: `${divider}%` }}
               onScroll={handleScroll}
             >
@@ -571,6 +598,7 @@ export default function Reader() {
         )}
       </div>
 
+      {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 bg-[#B17457] text-[#FAF7F0] px-4 py-2 rounded shadow-lg border border-[#D8D2C2]">
           Page bookmarked for later reading.
