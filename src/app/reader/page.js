@@ -15,7 +15,7 @@ import {
 import pageMap from "@/data/page-mapping.json";
 
 /* Import your TEI stylesheet instead of using <link> tags */
-import "@/styles/LBstyle.css"; // <- move your CSS file here or adjust the path
+import "@/css/LBstyle.css"; // <- move your CSS file here or adjust the path
 
 /* ───────── Roman ↔ Arabic conversion + dynamic mapping ───────── */
 function toRoman(num) {
