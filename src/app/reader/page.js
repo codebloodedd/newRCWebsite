@@ -1,6 +1,6 @@
 "use client";
+
 import { useState, useEffect, useRef } from "react";
-import OpenSeadragon from "openseadragon";
 import {
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
@@ -13,6 +13,9 @@ import {
   EllipsisVerticalIcon,
 } from "@heroicons/react/24/outline";
 import pageMap from "@/data/page-mapping.json";
+
+/* Import your TEI stylesheet instead of using <link> tags */
+import "@/styles/LBstyle.css"; // <- move your CSS file here or adjust the path
 
 /* ───────── Roman ↔ Arabic conversion + dynamic mapping ───────── */
 function toRoman(num) {
@@ -90,7 +93,6 @@ function getInternalFromDisplay(display) {
   if (isArabicNumber) {
     const n = parseInt(display, 10);
     if (!n || n <= 0) return orderedInternalIds[0];
-    // Arabic display id
     for (const id of orderedInternalIds) {
       if (
         internalDisplayMap[id].type === "arabic" &&
@@ -98,7 +100,6 @@ function getInternalFromDisplay(display) {
       )
         return id;
     }
-    // Roman ordinal
     if (n <= romanDisplayCount) {
       let count = 0;
       for (const id of orderedInternalIds) {
@@ -124,11 +125,13 @@ export default function Reader() {
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const viewerRef = useRef(null);
-  const [viewer, setViewer] = useState(null);
+  /* OSD container ref + viewer instance ref (NOT state) */
+  const osdContainerRef = useRef(null);
+  const osdViewerRef = useRef(null);
+
   const transcriptRef = useRef(null);
 
-  /* Load transcript (strip pgImg) */
+  /* Load transcript (strip pgImg) – runs only client-side */
   useEffect(() => {
     fetch("/data/LB00-1_facs.html")
       .then((r) => r.text())
@@ -148,7 +151,7 @@ export default function Reader() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  /* OpenSeadragon: desktop always, mobile only when in image view */
+  /* OpenSeadragon: dynamically import to avoid SSR crash */
   useEffect(() => {
     const shouldInit = !isMobile || (isMobile && viewMode === "image");
     if (!shouldInit) return;
@@ -158,30 +161,42 @@ export default function Reader() {
       ? `/${pageMap[currentDisplayKey]}`
       : null;
 
-    if (viewer) {
-      try {
-        viewer.destroy();
-      } catch {}
-      setViewer(null);
-    }
-    if (!imagePath || !viewerRef.current) return;
+    if (!imagePath || !osdContainerRef.current) return;
 
-    const v = OpenSeadragon({
-      element: viewerRef.current,
-      prefixUrl:
-        "https://cdn.jsdelivr.net/npm/openseadragon@3.0.0/build/openseadragon/images/",
-      tileSources: { type: "image", url: imagePath },
-      showNavigationControl: !isMobile,
-      showZoomControl: !isMobile,
-      showHomeControl: !isMobile,
-      showFullPageControl: false,
-    });
-    setViewer(v);
+    let cancelled = false;
+
+    (async () => {
+      const mod = await import("openseadragon"); // <-- dynamic import
+      if (cancelled) return;
+
+      // destroy any previous instance
+      if (osdViewerRef.current) {
+        try {
+          osdViewerRef.current.destroy();
+        } catch {}
+        osdViewerRef.current = null;
+      }
+
+      osdViewerRef.current = mod.default({
+        element: osdContainerRef.current,
+        prefixUrl:
+          "https://cdn.jsdelivr.net/npm/openseadragon@3.0.0/build/openseadragon/images/",
+        tileSources: { type: "image", url: imagePath },
+        showNavigationControl: !isMobile,
+        showZoomControl: !isMobile,
+        showHomeControl: !isMobile,
+        showFullPageControl: false,
+      });
+    })();
 
     return () => {
-      try {
-        v.destroy();
-      } catch {}
+      cancelled = true;
+      if (osdViewerRef.current) {
+        try {
+          osdViewerRef.current.destroy();
+        } catch {}
+        osdViewerRef.current = null;
+      }
     };
   }, [currentPage, isMobile, viewMode]);
 
@@ -262,6 +277,7 @@ export default function Reader() {
     if (pct > 20 && pct < 80) setDivider(pct);
   };
   const toggleFullscreen = () => {
+    if (typeof document === "undefined") return;
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
       setFullscreen(true);
@@ -292,7 +308,6 @@ export default function Reader() {
     else setArabicInput("");
   };
 
-  /* ───────── Render ───────── */
   return (
     <div className="h-screen flex flex-col bg-[#FAF7F0] text-[#4A4947] overflow-hidden">
       <style>{`
@@ -302,7 +317,7 @@ export default function Reader() {
         }
       `}</style>
 
-      {/* Fixed Top Nav (always glued, no shift) */}
+      {/* Fixed Top Nav */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#B17457] text-[#FAF7F0] shadow-sm border-b border-[#D8D2C2]">
         <div className="flex items-center justify-between px-6 py-3">
           {/* LEFT: title + info */}
@@ -337,13 +352,12 @@ export default function Reader() {
             </div>
           </div>
 
-          {/* CENTER: Desktop page navigation (dual selectors + prev/next) */}
+          {/* CENTER: Desktop nav */}
           <div className="hidden lg:flex items-center gap-3">
             <button onClick={goPrev} className="p-1 text-[#FAF7F0]">
               <ChevronLeftIcon className="h-5 w-5" />
             </button>
 
-            {/* Roman selector (display shows roman, input uses arabic ordinal) */}
             <form
               onSubmit={handleRomanSelectorSubmit}
               className="flex items-center gap-2 bg-[#FAF7F0] text-[#4A4947] px-3 py-1 rounded shadow-sm border border-[#D8D2C2]"
@@ -357,9 +371,7 @@ export default function Reader() {
                 onChange={(e) =>
                   setRomanInput(e.target.value.replace(/[^\d]/g, ""))
                 }
-                title={`Enter roman page ordinal as Arabic number (e.g. 11 for ${toRoman(
-                  11
-                )}).`}
+                title={`Enter roman page ordinal as Arabic number (e.g. 11).`}
                 disabled={romanDisplayCount === 0}
               />
               <div className="text-sm">
@@ -367,7 +379,6 @@ export default function Reader() {
               </div>
             </form>
 
-            {/* Arabic selector */}
             <form
               onSubmit={handleArabicSelectorSubmit}
               className="flex items-center gap-2 bg-[#FAF7F0] text-[#4A4947] px-3 py-1 rounded shadow-sm border border-[#D8D2C2]"
@@ -396,13 +407,11 @@ export default function Reader() {
 
           {/* RIGHT: version + desktop controls + mobile menu */}
           <div className="flex items-center gap-3">
-            {/* version dropdown preserved */}
             <select className="bg-transparent text-[#FAF7F0] font-medium focus:outline-none cursor-pointer hidden sm:block">
               <option>Version 1</option>
               <option>Version 2</option>
             </select>
 
-            {/* Desktop controls */}
             <div className="hidden lg:flex items-center gap-3">
               <button onClick={handleBookmark} title="Bookmark page">
                 <BookmarkIcon className="h-5 w-5" />
@@ -416,7 +425,6 @@ export default function Reader() {
               </button>
             </div>
 
-            {/* Mobile menu w/ smooth icon swap */}
             <div className="lg:hidden relative">
               <button
                 onClick={() => setMobileMenuOpen((s) => !s)}
@@ -432,7 +440,6 @@ export default function Reader() {
 
               {mobileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-60 bg-[#FAF7F0] text-[#4A4947] border border-[#D8D2C2] rounded shadow-lg p-3 z-50">
-                  {/* Mobile unified page selector */}
                   <div className="mb-2">
                     <div className="text-sm font-medium">Go to page</div>
                     <div className="text-xs text-[#4A4947]/80 mb-1">
@@ -501,7 +508,7 @@ export default function Reader() {
       {/* spacer so fixed header doesn’t overlap content */}
       <div className="h-[56px] shrink-0" />
 
-      {/* Main viewer (no page vertical scroll; panes scroll internally) */}
+      {/* Main viewer */}
       <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
         {isMobile ? (
           <>
@@ -511,7 +518,6 @@ export default function Reader() {
                 className="overflow-y-auto overflow-x-hidden p-6 border-t border-[#D8D2C2] bg-[#FAF7F0] flex-1 max-w-full"
                 onScroll={handleScroll}
               >
-                <link rel="stylesheet" href="/css/LBstyle.css" />
                 <div
                   className="max-w-3xl mx-auto break-words"
                   dangerouslySetInnerHTML={{ __html: htmlContent }}
@@ -521,7 +527,7 @@ export default function Reader() {
 
             {viewMode === "image" && (
               <div className="relative flex-1 bg-[#FAF7F0]">
-                <div ref={viewerRef} className="w-full h-full" />
+                <div ref={osdContainerRef} className="w-full h-full" />
                 <button
                   onClick={goPrev}
                   className="absolute left-2 top-1/2 -translate-y-1/2 bg-[#B17457]/80 text-[#FAF7F0] rounded-full p-3"
@@ -537,7 +543,6 @@ export default function Reader() {
               </div>
             )}
 
-            {/* Circular FAB */}
             <button
               onClick={toggleViewMode}
               className="lg:hidden fixed bottom-6 right-6 z-40 bg-[#B17457] text-[#FAF7F0] w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
@@ -552,7 +557,6 @@ export default function Reader() {
             </button>
           </>
         ) : (
-          /* Desktop split */
           <div className="flex flex-1 overflow-hidden">
             <div
               ref={transcriptRef}
@@ -560,7 +564,6 @@ export default function Reader() {
               style={{ width: `${divider}%` }}
               onScroll={handleScroll}
             >
-              <link rel="stylesheet" href="/css/LBstyle.css" />
               <div
                 className="max-w-3xl mx-auto break-words"
                 dangerouslySetInnerHTML={{ __html: htmlContent }}
@@ -580,7 +583,7 @@ export default function Reader() {
             />
 
             <div className="flex-1 relative border-l border-[#D8D2C2] bg-[#FAF7F0]">
-              <div ref={viewerRef} className="w-full h-full" />
+              <div ref={osdContainerRef} className="w-full h-full" />
               <button
                 onClick={goPrev}
                 className="absolute left-4 top-1/2 -translate-y-1/2 bg-[#B17457]/80 text-[#FAF7F0] rounded-full p-2 shadow"
@@ -598,7 +601,6 @@ export default function Reader() {
         )}
       </div>
 
-      {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 bg-[#B17457] text-[#FAF7F0] px-4 py-2 rounded shadow-lg border border-[#D8D2C2]">
           Page bookmarked for later reading.
